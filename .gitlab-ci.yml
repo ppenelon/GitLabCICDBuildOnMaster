@@ -1,0 +1,36 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  image: node:8.11-alpine
+  stage: test
+  tags:
+    - node
+  script:
+    - npm install
+    - npm test
+
+build:
+  stage: build
+  only:
+    - master
+  tags:
+    - docker
+  script:
+    - docker build -t test-cicd .
+    
+deploy:
+  stage: deploy
+  only:
+    - master
+  tags:
+    - docker
+  script:
+    - docker stop test-cicd
+    - docker rm test-cicd
+    - docker run -p 8080:5000 -d --name test-cicd test-cicd
+    - set +e
+    - docker rmi $(docker images -f "dangling=true" -q --no-trunc)
+    - set -e
